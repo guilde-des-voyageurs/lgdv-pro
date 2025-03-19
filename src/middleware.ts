@@ -46,9 +46,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/connexion', request.url))
   }
 
-  // Si l'utilisateur est connecté et essaie d'accéder à la page de connexion
+  // Si l'utilisateur est connecté et essaie d'accéder aux pages d'auth
   if (session && (
     request.nextUrl.pathname === '/connexion' || 
+    request.nextUrl.pathname === '/inscription' ||
     request.nextUrl.pathname === '/mot-de-passe-oublie'
   )) {
     return NextResponse.redirect(new URL('/compte', request.url))
@@ -58,5 +59,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/compte', '/connexion', '/mot-de-passe-oublie']
+  matcher: ['/', '/compte', '/connexion', '/inscription', '/inscription/confirmation', '/mot-de-passe-oublie']
 }

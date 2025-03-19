@@ -17,6 +17,12 @@ export default function LoginPage() {
           <h2 className="mt-6 text-center text-xl text-gray-600">
             Connectez-vous à votre espace
           </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Ou{' '}
+            <a href="/inscription" className="font-medium text-blue-600 hover:text-blue-500">
+              inscrivez-vous pour nous rejoindre
+            </a>
+          </p>
         </div>
 
         <LoginForm />
