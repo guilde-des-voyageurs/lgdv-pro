@@ -26,7 +26,7 @@ export default function LoginForm() {
       if (error) throw error
 
       // Rediriger vers la page de compte après la connexion
-      router.push('/auth/compte')
+      router.push('/compte')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue')
     } finally {

@@ -7,7 +7,7 @@ export default async function Home() {
 
   // Si l'utilisateur est connecté, rediriger vers son compte
   if (session) {
-    redirect('/auth/compte')
+    redirect('/compte')
   }
 
   // Sinon, rediriger vers la page de connexion

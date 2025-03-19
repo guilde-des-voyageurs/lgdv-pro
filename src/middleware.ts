@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
 
   // Si l'utilisateur n'est pas connecté et essaie d'accéder à une route protégée
-  if (!session && request.nextUrl.pathname.startsWith('/auth')) {
+  if (!session && request.nextUrl.pathname === '/compte') {
     return NextResponse.redirect(new URL('/connexion', request.url))
   }
 
@@ -51,12 +51,12 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname === '/connexion' || 
     request.nextUrl.pathname === '/mot-de-passe-oublie'
   )) {
-    return NextResponse.redirect(new URL('/auth/compte', request.url))
+    return NextResponse.redirect(new URL('/compte', request.url))
   }
 
   return response
 }
 
 export const config = {
-  matcher: ['/', '/auth/:path*', '/connexion', '/mot-de-passe-oublie']
+  matcher: ['/', '/compte', '/connexion', '/mot-de-passe-oublie']
 }
