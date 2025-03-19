@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import LogoutButton from '@/components/auth/LogoutButton'
 
 export const metadata: Metadata = {
   title: 'Mon Compte | La Guilde des Voyageurs',
@@ -8,53 +9,61 @@ export const metadata: Metadata = {
 }
 
 export default async function AccountPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
 
   if (!session) {
     redirect('/connexion')
   }
 
-  const { data: profile } = await supabase
+  // Ajout de logs pour déboguer
+  console.log('Session user ID:', session.user.id)
+
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', session.user.id)
     .single()
 
+  // Ajout de logs pour déboguer
+  console.log('Profile:', profile)
+  console.log('Error:', error)
+
+  if (error || !profile) {
+    return (
+      <main className="min-h-screen p-8">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold mb-4">Erreur</h1>
+          <p>Erreur lors de la récupération du profil :</p>
+          <pre className="mt-2 p-4 bg-red-50 text-red-800 rounded">
+            {JSON.stringify({ error, userId: session.user.id }, null, 2)}
+          </pre>
+        </div>
+      </main>
+    )
+  }
+
   return (
-    <main className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">Mon Compte</h1>
-      
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Informations du compte</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">Email</p>
-                <p className="font-medium">{session.user.email}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Statut</p>
-                <p className="font-medium">{profile?.status || 'En attente'}</p>
+    <main className="min-h-screen p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">Mon Compte</h1>
+        
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-medium">Informations du compte</h2>
+              <div className="mt-2 space-y-2">
+                <p><span className="font-medium">Email :</span> {profile.email}</p>
+                <p><span className="font-medium">Statut :</span> {profile.status}</p>
+                <p><span className="font-medium">Rôle :</span> {profile.is_admin ? 'Administrateur' : 'Utilisateur'}</p>
               </div>
             </div>
-          </div>
 
-          <div className="pt-6 border-t">
-            <h2 className="text-xl font-semibold mb-4">Actions</h2>
-            <div className="space-x-4">
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onClick={async () => {
-                  'use server'
-                  const supabase = createClient()
-                  await supabase.auth.signOut()
-                  redirect('/connexion')
-                }}
-              >
-                Se déconnecter
-              </button>
+            <div className="pt-6 border-t">
+              <h2 className="text-lg font-medium mb-4">Actions</h2>
+              <div className="space-x-4">
+                <LogoutButton />
+              </div>
             </div>
           </div>
         </div>
