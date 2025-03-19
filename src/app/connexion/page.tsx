@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import LoginForm from '@/components/auth/LoginForm'
+import MagicLinkForm from '@/components/auth/MagicLinkForm'
 
 export const metadata: Metadata = {
   title: 'Connexion | La Guilde des Voyageurs',
@@ -25,7 +25,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <LoginForm />
+        <MagicLinkForm />
 
         <div className="mt-4 text-center">
           <a

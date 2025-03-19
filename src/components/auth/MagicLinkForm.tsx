@@ -2,13 +2,12 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
-export default function RegisterForm() {
+export default function MagicLinkForm() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+  const [sent, setSent] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -21,21 +20,30 @@ export default function RegisterForm() {
         email,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            status: 'pending' // Le statut initial est 'pending'
-          }
-        }
+        },
       })
 
       if (error) throw error
 
-      // Rediriger vers la page de confirmation
-      router.push(`/inscription/confirmation?email=${encodeURIComponent(email)}`)
+      setSent(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (sent) {
+    return (
+      <div className="text-center p-4 bg-green-50 rounded-md">
+        <h3 className="text-sm font-medium text-green-800">
+          Email envoyé !
+        </h3>
+        <p className="mt-2 text-sm text-green-700">
+          Vérifiez votre boîte mail {email} et cliquez sur le lien de connexion.
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -66,7 +74,7 @@ export default function RegisterForm() {
           disabled={loading}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Inscription...' : 'Candidater'}
+          {loading ? 'Envoi...' : 'Recevoir un lien de connexion'}
         </button>
       </div>
     </form>
