@@ -3,6 +3,8 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Database } from '@/types/database.types'
+import Link from 'next/link'
+import { UserGroupIcon } from '@heroicons/react/24/outline'
 
 export const metadata: Metadata = {
   title: 'Tableau de bord | Administration',
@@ -90,12 +92,21 @@ export default async function AdminPage() {
         <p className="text-gray-600 mb-4">
           Gérez les membres de La Guilde des Voyageurs : informations, statuts et permissions.
         </p>
-        <a
-          href="/admin/membres"
-          className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+        <Link
+          href="/admin/membres/"
+          className="group relative flex gap-x-6 rounded-lg p-4 hover:bg-gray-50"
         >
-          Voir les membres
-        </a>
+          <div className="mt-1 flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-50 group-hover:bg-white">
+            <UserGroupIcon className="h-6 w-6 text-gray-600 group-hover:text-indigo-600" aria-hidden="true" />
+          </div>
+          <div>
+            <div className="font-semibold text-gray-900">
+              Gestion des membres
+              <span className="absolute inset-0" />
+            </div>
+            <p className="mt-1 text-gray-600">Voir et modifier les membres de la Guilde</p>
+          </div>
+        </Link>
       </div>
     </div>
   )

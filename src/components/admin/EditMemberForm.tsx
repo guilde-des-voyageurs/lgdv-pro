@@ -17,7 +17,6 @@ export default function EditMemberForm({ member }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [logoFile, setLogoFile] = useState<File | null>(null)
   const [formData, setFormData] = useState({
     id: member.id,
     created_at: member.created_at,
@@ -96,7 +95,6 @@ export default function EditMemberForm({ member }: Props) {
     }
 
     const file = e.target.files[0]
-    setLogoFile(file)
 
     try {
       setLoading(true)
@@ -109,7 +107,7 @@ export default function EditMemberForm({ member }: Props) {
       const fileName = `${member.id}.${fileExt}`
 
       // Upload du fichier dans le bucket "logos"
-      const { data, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('logos')
         .upload(fileName, file, {
           upsert: true // Remplacer si le fichier existe déjà
@@ -206,7 +204,7 @@ export default function EditMemberForm({ member }: Props) {
           {/* Nom de l'entreprise */}
           <div>
             <label htmlFor="company_name" className="block text-sm font-medium text-gray-700">
-              Nom de l'entreprise
+              Nom de l&apos;entreprise
             </label>
             <input
               type="text"
@@ -371,7 +369,7 @@ export default function EditMemberForm({ member }: Props) {
         {/* Raison d'adhésion */}
         <div>
           <label htmlFor="join_reason" className="block text-sm font-medium text-gray-700">
-            Raison d'adhésion
+            Raison d&apos;adhésion
           </label>
           <textarea
             id="join_reason"
