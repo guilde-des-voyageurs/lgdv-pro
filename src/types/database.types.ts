@@ -18,8 +18,18 @@ export interface Database {
           company_name: string | null
           status: 'active' | 'pending_payment' | 'pending_review'
           is_admin: boolean
+          manager_name: string | null
+          siret: string | null
+          member_type: string | null
+          logo_url: string | null
+          sponsor: string | null
+          join_reason: string | null
+          charter_signed: boolean | null
           phone: string | null
           address: string | null
+          tiktok_url: string | null
+          instagram_url: string | null
+          website_url: string | null
         }
         Insert: {
           id: string
@@ -29,8 +39,18 @@ export interface Database {
           company_name?: string | null
           status?: 'active' | 'pending_payment' | 'pending_review'
           is_admin?: boolean
+          manager_name?: string | null
+          siret?: string | null
+          member_type?: string | null
+          logo_url?: string | null
+          sponsor?: string | null
+          join_reason?: string | null
+          charter_signed?: boolean | null
           phone?: string | null
           address?: string | null
+          tiktok_url?: string | null
+          instagram_url?: string | null
+          website_url?: string | null
         }
         Update: {
           id?: string
@@ -40,8 +60,18 @@ export interface Database {
           company_name?: string | null
           status?: 'active' | 'pending_payment' | 'pending_review'
           is_admin?: boolean
+          manager_name?: string | null
+          siret?: string | null
+          member_type?: string | null
+          logo_url?: string | null
+          sponsor?: string | null
+          join_reason?: string | null
+          charter_signed?: boolean | null
           phone?: string | null
           address?: string | null
+          tiktok_url?: string | null
+          instagram_url?: string | null
+          website_url?: string | null
         }
       }
     }
