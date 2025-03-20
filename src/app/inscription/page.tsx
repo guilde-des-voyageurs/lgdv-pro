@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import RegisterForm from '@/components/auth/RegisterForm'
+import DetailedRegisterForm from '@/components/auth/DetailedRegisterForm'
 
 export const metadata: Metadata = {
   title: 'Inscription | La Guilde des Voyageurs',
@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8">
+    <main className="min-h-screen flex justify-center p-4">
+      <div className="max-w-2xl w-full space-y-8 py-8">
         <div>
           <h1 className="text-center text-3xl font-extrabold text-gray-900">
             Rejoindre La Guilde
@@ -22,7 +22,7 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <RegisterForm />
+        <DetailedRegisterForm />
       </div>
     </main>
   )

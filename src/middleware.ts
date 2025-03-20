@@ -13,7 +13,6 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          // @ts-ignore - Les types de Next.js ne sont pas à jour
           response.cookies.set({
             name,
             value,
@@ -24,7 +23,6 @@ export async function middleware(request: NextRequest) {
           })
         },
         remove(name: string, options: CookieOptions) {
-          // @ts-ignore - Les types de Next.js ne sont pas à jour
           response.cookies.set({
             name,
             value: '',
@@ -39,30 +37,36 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // Rafraîchir la session si elle existe
+  await supabase.auth.getSession()
+
+  // Protéger les routes qui nécessitent une authentification
+  const isAuthPage = request.nextUrl.pathname.startsWith('/connexion') ||
+    request.nextUrl.pathname.startsWith('/inscription') ||
+    request.nextUrl.pathname.startsWith('/auth/callback')
+
   const { data: { session } } = await supabase.auth.getSession()
 
-  // Ne pas protéger la route de callback
-  if (request.nextUrl.pathname === '/auth/callback') {
-    return response
-  }
-
-  // Si l'utilisateur n'est pas connecté et essaie d'accéder à une route protégée
-  if (!session && request.nextUrl.pathname === '/compte') {
-    return NextResponse.redirect(new URL('/connexion', request.url))
-  }
-
-  // Si l'utilisateur est connecté et essaie d'accéder aux pages d'auth
-  if (session && (
-    request.nextUrl.pathname === '/connexion' || 
-    request.nextUrl.pathname === '/inscription' ||
-    request.nextUrl.pathname === '/mot-de-passe-oublie'
-  )) {
+  // Si l'utilisateur est sur une page auth alors qu'il est déjà connecté
+  if (isAuthPage && session) {
     return NextResponse.redirect(new URL('/compte', request.url))
+  }
+
+  // Si l'utilisateur n'est pas connecté et essaie d'accéder à une page protégée
+  if (!isAuthPage && !session && request.nextUrl.pathname.startsWith('/compte')) {
+    return NextResponse.redirect(new URL('/connexion', request.url))
   }
 
   return response
 }
 
+// Configurer les routes qui déclenchent le middleware
 export const config = {
-  matcher: ['/', '/compte', '/connexion', '/inscription', '/inscription/confirmation', '/mot-de-passe-oublie', '/auth/callback']
+  matcher: [
+    '/compte/:path*',
+    '/connexion',
+    '/inscription',
+    '/inscription/confirmation',
+    '/auth/callback'
+  ],
 }
