@@ -16,6 +16,8 @@ export default function EditMemberForm({ member }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
   const [formData, setFormData] = useState({
     id: member.id,
     created_at: member.created_at,
@@ -88,6 +90,50 @@ export default function EditMemberForm({ member }: Props) {
     }))
   }
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return
+    }
+
+    const file = e.target.files[0]
+    setLogoFile(file)
+
+    try {
+      setLoading(true)
+      setUploadError(null)
+
+      const supabase = createClient()
+      
+      // Générer un nom de fichier unique basé sur l'ID du membre et l'extension du fichier
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${member.id}.${fileExt}`
+
+      // Upload du fichier dans le bucket "logos"
+      const { data, error: uploadError } = await supabase.storage
+        .from('logos')
+        .upload(fileName, file, {
+          upsert: true // Remplacer si le fichier existe déjà
+        })
+
+      if (uploadError) throw uploadError
+
+      // Obtenir l'URL publique du logo
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos')
+        .getPublicUrl(fileName)
+
+      // Mettre à jour l'état du formulaire avec la nouvelle URL du logo
+      setFormData({
+        ...formData,
+        logo_url: publicUrl
+      })
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Erreur lors de l\'upload du logo')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="max-w-4xl bg-white shadow rounded-lg p-6">
       <div className="space-y-6">
@@ -103,28 +149,40 @@ export default function EditMemberForm({ member }: Props) {
         </div>
 
         {/* Logo */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Logo</label>
-          {formData.logo_url && (
-            <div className="mt-2 mb-4">
+        <div className="col-span-full">
+          <label htmlFor="logo" className="block text-sm font-medium text-gray-700">
+            Logo
+          </label>
+          <div className="mt-2 flex items-center gap-x-3">
+            {formData.logo_url && (
               <Image
                 src={formData.logo_url}
                 alt="Logo de l'entreprise"
                 width={100}
                 height={100}
-                className="rounded-lg"
+                className="rounded-lg object-cover"
               />
-            </div>
+            )}
+            <input
+              type="file"
+              id="logo"
+              accept="image/*"
+              onChange={handleLogoUpload}
+              className="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-indigo-50 file:text-indigo-700
+                hover:file:bg-indigo-100
+                file:cursor-pointer cursor-pointer"
+            />
+          </div>
+          {uploadError && (
+            <p className="mt-2 text-sm text-red-600">{uploadError}</p>
           )}
-          <input
-            type="url"
-            id="logo_url"
-            name="logo_url"
-            value={formData.logo_url}
-            onChange={handleChange}
-            placeholder="URL du logo"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          />
+          {loading && (
+            <p className="mt-2 text-sm text-gray-500">Upload en cours...</p>
+          )}
         </div>
 
         {/* Informations principales */}
@@ -148,7 +206,7 @@ export default function EditMemberForm({ member }: Props) {
           {/* Nom de l'entreprise */}
           <div>
             <label htmlFor="company_name" className="block text-sm font-medium text-gray-700">
-              Nom de l&apos;entreprise
+              Nom de l'entreprise
             </label>
             <input
               type="text"
@@ -313,7 +371,7 @@ export default function EditMemberForm({ member }: Props) {
         {/* Raison d'adhésion */}
         <div>
           <label htmlFor="join_reason" className="block text-sm font-medium text-gray-700">
-            Raison d&apos;adhésion
+            Raison d'adhésion
           </label>
           <textarea
             id="join_reason"
