@@ -10,19 +10,19 @@ export const metadata: Metadata = {
 
 export default async function AccountPage() {
   const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect('/connexion')
   }
 
   // Ajout de logs pour déboguer
-  console.log('Session user ID:', session.user.id)
+  console.log('User ID:', user.id)
 
   const { data: profile, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single()
 
   // Ajout de logs pour déboguer
@@ -36,7 +36,7 @@ export default async function AccountPage() {
           <h1 className="text-2xl font-bold mb-4">Erreur</h1>
           <p>Erreur lors de la récupération du profil :</p>
           <pre className="mt-2 p-4 bg-red-50 text-red-800 rounded">
-            {JSON.stringify({ error, userId: session.user.id }, null, 2)}
+            {JSON.stringify({ error, userId: user.id }, null, 2)}
           </pre>
         </div>
       </main>

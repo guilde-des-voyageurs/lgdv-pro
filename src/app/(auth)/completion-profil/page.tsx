@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 
 export default async function ProfileCompletionPage() {
   const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect('/connexion')
   }
 
@@ -20,7 +20,7 @@ export default async function ProfileCompletionPage() {
   const { data: profile } = await supabase
     .from('profiles')
     .select('status')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single()
 
   // Si le profil est déjà actif, rediriger vers le hall
@@ -36,7 +36,7 @@ export default async function ProfileCompletionPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <ProfileCompletion 
-        userId={session.user.id} 
+        userId={user.id} 
       />
     </div>
   )

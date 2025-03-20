@@ -61,20 +61,18 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Rafraîchir la session si elle existe
-  await supabase.auth.getSession()
-
-  const { data: { session } } = await supabase.auth.getSession()
+  // Récupérer l'utilisateur authentifié de manière sécurisée
+  const { data: { user } } = await supabase.auth.getUser()
 
   // Si l'utilisateur est connecté et essaie d'accéder à une page publique
-  if (session && (
+  if (user && (
     request.nextUrl.pathname === '/connexion'
   )) {
     return NextResponse.redirect(new URL('/hall', request.url))
   }
 
   // Si l'utilisateur n'est pas connecté et essaie d'accéder à une page protégée
-  if (!session && (
+  if (!user && (
     request.nextUrl.pathname.startsWith('/hall') ||
     request.nextUrl.pathname.startsWith('/compte') ||
     request.nextUrl.pathname.startsWith('/calendrier') ||
@@ -89,7 +87,7 @@ export async function middleware(request: NextRequest) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('is_admin')
-      .eq('id', session?.user.id)
+      .eq('id', user?.id)
       .single()
 
     if (!profile?.is_admin) {

@@ -27,9 +27,9 @@ export default async function AuthLayout({ children }: LayoutProps) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect('/connexion')
   }
 
