@@ -2,14 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Database } from '@/types/database.types'
 
-interface Profile {
-  id: string
-  full_name: string | null
-  email: string
-  status: 'active' | 'pending' | 'inactive'
-  date_inscription: string
-}
+type Profile = Database['public']['Tables']['profiles']['Row']
 
 export default function MembersList() {
   const [members, setMembers] = useState<Profile[]>([])
@@ -22,7 +17,7 @@ export default function MembersList() {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .order('date_inscription', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       setMembers(data || [])
@@ -89,7 +84,7 @@ export default function MembersList() {
                 scope="col"
                 className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
               >
-                Nom
+                Entreprise
               </th>
               <th
                 scope="col"
@@ -101,13 +96,16 @@ export default function MembersList() {
                 scope="col"
                 className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
               >
-                Date d&apos;inscription
+                Statut
               </th>
               <th
                 scope="col"
                 className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
               >
-                Statut
+                Date d&apos;inscription
+              </th>
+              <th scope="col" className="relative px-3 py-3.5">
+                <span className="sr-only">Actions</span>
               </th>
             </tr>
           </thead>
@@ -115,28 +113,40 @@ export default function MembersList() {
             {members.map((member) => (
               <tr key={member.id}>
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                  {member.full_name || 'Sans nom'}
+                  {member.company_name || 'Non renseigné'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                   {member.email}
                 </td>
-                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                  {new Date(member.date_inscription).toLocaleDateString()}
-                </td>
                 <td className="whitespace-nowrap px-3 py-4 text-sm">
-                  <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                    member.status === 'active'
-                      ? 'bg-green-100 text-green-800'
-                      : member.status === 'pending'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}>
+                  <span
+                    className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                      member.status === 'active'
+                        ? 'bg-green-100 text-green-800'
+                        : member.status === 'pending_payment' || member.status === 'pending_review'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
                     {member.status === 'active'
                       ? 'Actif'
-                      : member.status === 'pending'
-                      ? 'En attente'
+                      : member.status === 'pending_payment'
+                      ? 'En attente de paiement'
+                      : member.status === 'pending_review'
+                      ? 'En attente de validation'
                       : 'Inactif'}
                   </span>
+                </td>
+                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                  {new Date(member.created_at).toLocaleDateString('fr-FR')}
+                </td>
+                <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                  <a
+                    href={`/admin/membres/${member.id}`}
+                    className="text-blue-600 hover:text-blue-900"
+                  >
+                    Modifier
+                  </a>
                 </td>
               </tr>
             ))}
