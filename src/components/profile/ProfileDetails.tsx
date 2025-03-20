@@ -51,7 +51,7 @@ export default function ProfileDetails() {
     }
 
     fetchProfile()
-  }, [])
+  }, [supabase])
 
   if (loading) {
     return (
@@ -115,7 +115,7 @@ export default function ProfileDetails() {
               <dd className="mt-1">{profile.siret}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Date d'inscription</dt>
+              <dt className="text-sm font-medium text-gray-500">Date d&apos;inscription</dt>
               <dd className="mt-1">{new Date(profile.date_inscription).toLocaleDateString()}</dd>
             </div>
           </dl>
@@ -129,7 +129,7 @@ export default function ProfileDetails() {
               <dd className="mt-1">{profile.sponsor}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Raison d'adhésion</dt>
+              <dt className="text-sm font-medium text-gray-500">Raison d&apos;adhésion</dt>
               <dd className="mt-1">{profile.raison_adhesion}</dd>
             </div>
             <div>

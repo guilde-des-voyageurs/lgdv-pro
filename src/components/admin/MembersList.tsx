@@ -1,173 +1,148 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { User } from '@supabase/supabase-js'
-import clsx from 'clsx'
 
-type Profile = {
+interface Profile {
   id: string
-  email: string
   full_name: string | null
-  status: 'pending' | 'active' | 'inactive'
-  created_at: string
+  email: string
+  status: 'active' | 'pending' | 'inactive'
+  date_inscription: string
 }
 
 export default function MembersList() {
-  const [members, setMembers] = useState<(Profile & { user: User | null })[]>([])
+  const [members, setMembers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const supabase = createClient()
 
-  // Charger les membres au montage du composant
-  useState(() => {
-    loadMembers()
-  })
-
-  async function loadMembers() {
+  const loadMembers = useCallback(async () => {
     try {
-      const supabase = createClient()
-      
-      // Récupérer tous les profils avec leurs données utilisateur
-      const { data: profiles, error: profilesError } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('date_inscription', { ascending: false })
 
-      if (profilesError) throw profilesError
-
-      // Pour chaque profil, récupérer les données utilisateur
-      const membersWithUser = await Promise.all(
-        profiles.map(async (profile) => {
-          const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(profile.id)
-          if (userError) console.error('Erreur lors de la récupération de l\'utilisateur:', userError)
-          return { ...profile, user }
-        })
-      )
-
-      setMembers(membersWithUser)
+      if (error) throw error
+      setMembers(data || [])
     } catch (err) {
-      console.error('Erreur lors du chargement des membres:', err)
-      setError('Impossible de charger la liste des membres')
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue')
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
 
-  async function updateMemberStatus(memberId: string, newStatus: Profile['status']) {
-    try {
-      const supabase = createClient()
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ status: newStatus })
-        .eq('id', memberId)
-
-      if (error) throw error
-
-      // Recharger la liste
-      await loadMembers()
-    } catch (err) {
-      console.error('Erreur lors de la mise à jour du statut:', err)
-      setError('Impossible de mettre à jour le statut du membre')
-    }
-  }
+  useEffect(() => {
+    loadMembers()
+  }, [loadMembers])
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
+      <div className="animate-pulse">
+        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+        <div className="space-y-3 mt-4">
+          <div className="h-4 bg-gray-200 rounded"></div>
+          <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 p-4 rounded-md">
-        <p className="text-sm text-red-700">{error}</p>
+      <div className="rounded-md bg-red-50 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">
+              Une erreur est survenue
+            </h3>
+            <div className="mt-2 text-sm text-red-700">
+              <p>{error}</p>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Membre
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Email
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Statut
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Date d'inscription
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {members.map((member) => (
-            <tr key={member.id}>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">
-                  {member.full_name || 'Non renseigné'}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-500">{member.email}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className={clsx(
-                  'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
-                  {
-                    'bg-green-100 text-green-800': member.status === 'active',
-                    'bg-yellow-100 text-yellow-800': member.status === 'pending',
-                    'bg-gray-100 text-gray-800': member.status === 'inactive'
-                  }
-                )}>
-                  {member.status === 'active' && 'Actif'}
-                  {member.status === 'pending' && 'En attente'}
-                  {member.status === 'inactive' && 'Inactif'}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {new Date(member.created_at).toLocaleDateString('fr-FR')}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                {member.status === 'pending' && (
-                  <button
-                    onClick={() => updateMemberStatus(member.id, 'active')}
-                    className="text-blue-600 hover:text-blue-900 mr-4"
-                  >
-                    Valider
-                  </button>
-                )}
-                {member.status === 'active' && (
-                  <button
-                    onClick={() => updateMemberStatus(member.id, 'inactive')}
-                    className="text-red-600 hover:text-red-900 mr-4"
-                  >
-                    Désactiver
-                  </button>
-                )}
-                {member.status === 'inactive' && (
-                  <button
-                    onClick={() => updateMemberStatus(member.id, 'active')}
-                    className="text-green-600 hover:text-green-900 mr-4"
-                  >
-                    Réactiver
-                  </button>
-                )}
-              </td>
+    <div className="overflow-hidden bg-white shadow sm:rounded-lg">
+      <div className="px-4 py-5 sm:px-6">
+        <h3 className="text-lg font-medium leading-6 text-gray-900">
+          Liste des membres
+        </h3>
+        <p className="mt-1 max-w-2xl text-sm text-gray-500">
+          {members.length} membre{members.length > 1 ? 's' : ''} au total
+        </p>
+      </div>
+      <div className="border-t border-gray-200">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th
+                scope="col"
+                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+              >
+                Nom
+              </th>
+              <th
+                scope="col"
+                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+              >
+                Email
+              </th>
+              <th
+                scope="col"
+                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+              >
+                Date d&apos;inscription
+              </th>
+              <th
+                scope="col"
+                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+              >
+                Statut
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-200 bg-white">
+            {members.map((member) => (
+              <tr key={member.id}>
+                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                  {member.full_name || 'Sans nom'}
+                </td>
+                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                  {member.email}
+                </td>
+                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                  {new Date(member.date_inscription).toLocaleDateString()}
+                </td>
+                <td className="whitespace-nowrap px-3 py-4 text-sm">
+                  <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                    member.status === 'active'
+                      ? 'bg-green-100 text-green-800'
+                      : member.status === 'pending'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {member.status === 'active'
+                      ? 'Actif'
+                      : member.status === 'pending'
+                      ? 'En attente'
+                      : 'Inactif'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

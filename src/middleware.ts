@@ -2,7 +2,11 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next()
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,6 +17,16 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
           response.cookies.set({
             name,
             value,
@@ -23,6 +37,16 @@ export async function middleware(request: NextRequest) {
           })
         },
         remove(name: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
           response.cookies.set({
             name,
             value: '',
@@ -40,20 +64,17 @@ export async function middleware(request: NextRequest) {
   // Rafraîchir la session si elle existe
   await supabase.auth.getSession()
 
-  // Protéger les routes qui nécessitent une authentification
-  const isAuthPage = request.nextUrl.pathname.startsWith('/connexion') ||
-    request.nextUrl.pathname.startsWith('/inscription') ||
-    request.nextUrl.pathname.startsWith('/auth/callback')
-
   const { data: { session } } = await supabase.auth.getSession()
 
-  // Si l'utilisateur est sur une page auth alors qu'il est déjà connecté
-  if (isAuthPage && session) {
+  // Si l'utilisateur est connecté et essaie d'accéder à une page publique
+  if (session && (
+    request.nextUrl.pathname === '/connexion'
+  )) {
     return NextResponse.redirect(new URL('/hall', request.url))
   }
 
   // Si l'utilisateur n'est pas connecté et essaie d'accéder à une page protégée
-  if (!isAuthPage && !session && (
+  if (!session && (
     request.nextUrl.pathname.startsWith('/hall') ||
     request.nextUrl.pathname.startsWith('/compte') ||
     request.nextUrl.pathname.startsWith('/calendrier') ||
@@ -88,8 +109,6 @@ export const config = {
     '/evenements/:path*',
     '/admin/:path*',
     '/connexion',
-    '/inscription',
-    '/inscription/confirmation',
     '/auth/callback'
   ],
 }

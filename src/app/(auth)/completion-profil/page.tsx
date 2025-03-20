@@ -37,7 +37,6 @@ export default async function ProfileCompletionPage() {
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <ProfileCompletion 
         userId={session.user.id} 
-        userEmail={session.user.email!} 
       />
     </div>
   )

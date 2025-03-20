@@ -36,7 +36,7 @@ export default function CompletionPage() {
       const fileName = `${Date.now()}.${fileExt}`
 
       // Upload du logo
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('logos')
         .upload(fileName, file, {
           cacheControl: '3600',
@@ -46,7 +46,7 @@ export default function CompletionPage() {
       if (uploadError) throw uploadError
 
       // Récupérer l'URL publique
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = await supabase.storage
         .from('logos')
         .getPublicUrl(fileName)
 

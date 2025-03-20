@@ -12,7 +12,7 @@ export async function createClient() {
         async get(name: string) {
           return cookieStore.get(name)?.value
         },
-        async set(name: string, value: string, options: any) {
+        async set(name: string, value: string, options: { path?: string; maxAge?: number; domain?: string; secure?: boolean }) {
           cookieStore.set({
             name,
             value,
@@ -22,7 +22,7 @@ export async function createClient() {
             secure: process.env.NODE_ENV === 'production'
           })
         },
-        async remove(name: string, options: any) {
+        async remove(name: string, options: { path?: string; domain?: string }) {
           cookieStore.set({
             name,
             value: '',

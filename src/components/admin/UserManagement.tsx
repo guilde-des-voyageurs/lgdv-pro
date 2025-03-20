@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface User {
@@ -21,22 +21,27 @@ export default function UserManagement() {
   const [showInviteForm, setShowInviteForm] = useState(false)
   const [inviting, setInviting] = useState(false)
 
-  // Charger la liste des utilisateurs
-  const loadUsers = async () => {
-    const supabase = createClient()
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('date_inscription', { ascending: false })
+  const supabase = createClient()
 
-    if (error) {
-      setError('Erreur lors du chargement des utilisateurs')
-      console.error('Erreur:', error)
-    } else {
+  const loadUsers = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('date_inscription', { ascending: false })
+
+      if (error) throw error
       setUsers(data || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    loadUsers()
+  }, [loadUsers])
 
   // Inviter un nouvel utilisateur
   const handleInvite = async (e: React.FormEvent) => {
@@ -45,9 +50,7 @@ export default function UserManagement() {
     setError(null)
 
     try {
-      const supabase = createClient()
-
-      // Vérifier si l'email existe déjà
+      // Vérifier si l&apos;email existe déjà
       const { data: existingUser } = await supabase
         .from('profiles')
         .select('id')
@@ -71,7 +74,7 @@ export default function UserManagement() {
 
       if (insertError) throw insertError
 
-      // Envoyer l'email d'invitation
+      // Envoyer l&apos;email d&apos;invitation
       const { error: signInError } = await supabase.auth.signInWithOtp({
         email: inviteEmail,
         options: {
@@ -88,8 +91,8 @@ export default function UserManagement() {
       loadUsers()
 
     } catch (err) {
-      console.error('Erreur lors de l\'invitation:', err)
-      setError('Erreur lors de l\'envoi de l\'invitation')
+      console.error('Erreur lors de l&apos;invitation:', err)
+      setError('Erreur lors de l&apos;envoi de l&apos;invitation')
     } finally {
       setInviting(false)
     }
@@ -97,7 +100,6 @@ export default function UserManagement() {
 
   // Activer/Désactiver un utilisateur
   const toggleUserStatus = async (user: User) => {
-    const supabase = createClient()
     const newStatus = user.status === 'disabled' ? 'active' : 'disabled'
 
     const { error } = await supabase
@@ -114,11 +116,6 @@ export default function UserManagement() {
       ))
     }
   }
-
-  // Charger les utilisateurs au montage du composant
-  useState(() => {
-    loadUsers()
-  }, [])
 
   if (loading) {
     return (
@@ -214,7 +211,7 @@ export default function UserManagement() {
                 Admin
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date d'inscription
+                Date d&apos;inscription
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions

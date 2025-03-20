@@ -1,224 +1,121 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 
-const TYPES_ACTIVITE = [
-  'Marque',
-  'Auteur',
-  'Artisan',
-  'Restaurateur',
-  'Artiste',
-  'Autre'
-]
-
-interface ProfileFormData {
-  type_membre: string
-  description: string
-  raison_adhesion: string
-  sponsor: string
-  site_web?: string
-  instagram?: string
-  tiktok?: string
+interface Profile {
+  id: string
+  full_name: string | null
+  email: string
+  status: 'active' | 'pending' | 'inactive'
+  date_inscription: string
 }
 
-export default function ProfileCompletion({ userId, userEmail }: { userId: string, userEmail: string }) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
+interface ProfileCompletionProps {
+  userId: string
+}
+
+export default function ProfileCompletion({ userId }: ProfileCompletionProps) {
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [formData, setFormData] = useState<ProfileFormData>({
-    type_membre: '',
-    description: '',
-    raison_adhesion: '',
-    sponsor: '',
-    site_web: '',
-    instagram: '',
-    tiktok: ''
-  })
+  const supabase = createClient()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    try {
-      const supabase = createClient()
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          ...formData,
-          status: 'active',
-          site_web: formData.site_web || null,
-          instagram: formData.instagram || null,
-          tiktok: formData.tiktok || null
-        })
-        .eq('id', userId)
-
-      if (updateError) throw updateError
-
-      // Rediriger vers le hall une fois le profil complété
-      router.push('/hall')
-      
-    } catch (err) {
-      console.error('Erreur lors de la mise à jour du profil:', err)
-      setError('Une erreur est survenue lors de la mise à jour de votre profil')
-    } finally {
-      setLoading(false)
+        if (error) throw error
+        setProfile(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Une erreur est survenue')
+      } finally {
+        setLoading(false)
+      }
     }
+
+    loadProfile()
+  }, [supabase, userId])
+
+  if (loading) {
+    return (
+      <div className="animate-pulse">
+        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+        <div className="space-y-3 mt-4">
+          <div className="h-4 bg-gray-200 rounded"></div>
+          <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+        </div>
+      </div>
+    )
   }
 
-  return (
-    <div className="max-w-2xl mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Bienvenue dans La Guilde des Voyageurs !
-        </h1>
-        <p className="mt-2 text-gray-600">
-          Pour finaliser votre inscription, merci de compléter votre profil.
+  if (error) {
+    return (
+      <div className="rounded-md bg-red-50 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">
+              Une erreur est survenue
+            </h3>
+            <div className="mt-2 text-sm text-red-700">
+              <p>{error}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="text-center">
+        <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun profil trouvé</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          Nous n&apos;avons pas pu trouver votre profil
         </p>
       </div>
+    )
+  }
 
-      {error && (
-        <div className="p-4 mb-6 bg-red-50 text-red-700 rounded-md">
-          {error}
+  const isProfileComplete = profile.full_name && profile.email
+
+  return (
+    <div className="rounded-md bg-yellow-50 p-4">
+      <div className="flex">
+        <div className="flex-shrink-0">
+          {isProfileComplete ? (
+            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          )}
         </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow">
-        <div>
-          <label htmlFor="type_membre" className="block text-sm font-medium text-gray-700">
-            Type d'activité *
-          </label>
-          <select
-            id="type_membre"
-            name="type_membre"
-            required
-            value={formData.type_membre}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="">Sélectionner dans la liste</option>
-            {TYPES_ACTIVITE.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-            Description de votre activité *
-          </label>
-          <textarea
-            id="description"
-            name="description"
-            required
-            rows={4}
-            value={formData.description}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="raison_adhesion" className="block text-sm font-medium text-gray-700">
-            Pourquoi souhaitez-vous rejoindre la Guilde ? *
-          </label>
-          <textarea
-            id="raison_adhesion"
-            name="raison_adhesion"
-            required
-            rows={4}
-            value={formData.raison_adhesion}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="sponsor" className="block text-sm font-medium text-gray-700">
-            Parrain *
-          </label>
-          <input
-            type="text"
-            id="sponsor"
-            name="sponsor"
-            required
-            value={formData.sponsor}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="site_web" className="block text-sm font-medium text-gray-700">
-            Site Web
-          </label>
-          <input
-            type="url"
-            id="site_web"
-            name="site_web"
-            placeholder="https://"
-            value={formData.site_web}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="instagram" className="block text-sm font-medium text-gray-700">
-            Instagram
-          </label>
-          <div className="mt-1 flex rounded-md shadow-sm">
-            <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500">
-              @
-            </span>
-            <input
-              type="text"
-              id="instagram"
-              name="instagram"
-              value={formData.instagram}
-              onChange={handleChange}
-              className="block w-full rounded-none rounded-r-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
+        <div className="ml-3">
+          <h3 className="text-sm font-medium text-yellow-800">
+            Complétion du profil
+          </h3>
+          <div className="mt-2 text-sm text-yellow-700">
+            <p>
+              {isProfileComplete
+                ? 'Votre profil est complet !'
+                : 'Veuillez compléter votre profil pour accéder à toutes les fonctionnalités.'}
+            </p>
           </div>
         </div>
-
-        <div>
-          <label htmlFor="tiktok" className="block text-sm font-medium text-gray-700">
-            TikTok
-          </label>
-          <div className="mt-1 flex rounded-md shadow-sm">
-            <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500">
-              @
-            </span>
-            <input
-              type="text"
-              id="tiktok"
-              name="tiktok"
-              value={formData.tiktok}
-              onChange={handleChange}
-              className="block w-full rounded-none rounded-r-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
-        <div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-            {loading ? 'Enregistrement...' : 'Compléter mon profil'}
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   )
 }

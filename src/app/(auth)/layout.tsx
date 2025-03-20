@@ -3,12 +3,12 @@ import { createServerClient } from '@supabase/ssr'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/navigation/Sidebar'
 
-export default async function AuthLayout({
-  children,
-}: {
+interface LayoutProps {
   children: React.ReactNode
-}) {
-  const cookieStore = cookies()
+}
+
+export default async function AuthLayout({ children }: LayoutProps) {
+  const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -17,10 +17,10 @@ export default async function AuthLayout({
         get(name: string) {
           return cookieStore.get(name)?.value
         },
-        set(name: string, value: string, options: any) {
+        set(name: string, value: string, options: { path?: string; maxAge?: number; domain?: string; secure?: boolean }) {
           cookieStore.set({ name, value, ...options })
         },
-        remove(name: string, options: any) {
+        remove(name: string, options: { path?: string; domain?: string }) {
           cookieStore.set({ name, value: '', ...options })
         },
       },
