@@ -40,7 +40,7 @@ export default function EditMemberForm({ member }: Props) {
   })
 
   const [cotisation, setCotisation] = useState({
-    status: 'unpaid' as 'paid' | 'pending' | 'unpaid',
+    status: 'unpaid' as 'paid' | 'unpaid',
     amount: '',
     year: new Date().getFullYear(),
   })
@@ -48,7 +48,7 @@ export default function EditMemberForm({ member }: Props) {
   const [cotisationsHistory, setCotisationsHistory] = useState<Array<{
     id: string;
     year: number;
-    status: 'paid' | 'pending' | 'unpaid';
+    status: 'paid' | 'unpaid';
     amount: string;
     paid_at: string | null;
   }>>([])
@@ -138,49 +138,14 @@ export default function EditMemberForm({ member }: Props) {
     loadCotisations()
   }, [member.id, selectedYear, supabase])
 
-  const handleCotisationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    try {
-      const { error } = await supabase
-        .from('cotisations')
-        .upsert({
-          profile_id: member.id,
-          year: cotisation.year,
-          status: cotisation.status,
-          amount: cotisation.amount ? parseFloat(cotisation.amount) : null,
-          updated_at: new Date().toISOString(),
-        })
-
-      if (error) throw error
-
-      router.refresh()
-    } catch (err) {
-      console.error('Erreur lors de la mise à jour de la cotisation:', err)
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la mise à jour de la cotisation')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     try {
-      console.log('Données envoyées à Supabase:', {
-        member_type: formData.member_type,
-        formData
-      })
-
-      if (formData.member_type && !['marque', 'artisan', 'artiste', 'restaurateur', 'auteur', 'autre'].includes(formData.member_type)) {
-        throw new Error('Type de membre invalide')
-      }
-
-      const { error } = await supabase
+      // Mise à jour du profil
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           email: formData.email,
@@ -203,20 +168,29 @@ export default function EditMemberForm({ member }: Props) {
         })
         .eq('id', member.id)
 
-      if (error) {
-        console.error('Erreur Supabase:', error)
-        throw error
-      }
+      if (profileError) throw profileError
+
+      // Mise à jour de la cotisation
+      const { error: cotisationError } = await supabase
+        .from('cotisations')
+        .upsert({
+          profile_id: member.id,
+          year: cotisation.year,
+          status: cotisation.status,
+          amount: cotisation.amount ? parseFloat(cotisation.amount) : null,
+          updated_at: new Date().toISOString(),
+          ...(cotisation.status === 'paid' ? { paid_at: new Date().toISOString() } : { paid_at: null })
+        }, {
+          onConflict: 'profile_id,year'
+        })
+
+      if (cotisationError) throw cotisationError
 
       router.refresh()
       router.push('/admin/membres')
     } catch (err) {
-      console.error('Erreur complète:', err)
-      if (err instanceof Error && err.message.includes('profiles_member_type_check')) {
-        setError('Le type de membre sélectionné n\'est pas valide. Veuillez vérifier les valeurs autorisées.')
-      } else {
-        setError(err instanceof Error ? err.message : 'Une erreur est survenue')
-      }
+      console.error('Erreur:', err)
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue')
     } finally {
       setLoading(false)
     }
@@ -625,7 +599,6 @@ export default function EditMemberForm({ member }: Props) {
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="unpaid">Non payée</option>
-              <option value="pending">En attente</option>
               <option value="paid">Payée</option>
             </select>
           </div>
@@ -705,14 +678,6 @@ export default function EditMemberForm({ member }: Props) {
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
           >
             {loading ? 'Enregistrement...' : 'Enregistrer'}
-          </button>
-          <button
-            type="button"
-            onClick={handleCotisationSubmit}
-            disabled={loading}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-          >
-            {loading ? 'Enregistrement de la cotisation...' : 'Enregistrer la cotisation'}
           </button>
         </div>
       </div>

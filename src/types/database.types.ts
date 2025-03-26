@@ -79,7 +79,7 @@ export interface Database {
           id: string
           profile_id: string
           year: number
-          status: 'paid' | 'pending' | 'unpaid'
+          status: 'paid' | 'unpaid'
           amount: number | null
           paid_at: string | null
           created_at: string
@@ -89,7 +89,7 @@ export interface Database {
           id?: string
           profile_id: string
           year: number
-          status?: 'paid' | 'pending' | 'unpaid'
+          status: 'paid' | 'unpaid'
           amount?: number | null
           paid_at?: string | null
           created_at?: string
@@ -99,7 +99,7 @@ export interface Database {
           id?: string
           profile_id?: string
           year?: number
-          status?: 'paid' | 'pending' | 'unpaid'
+          status?: 'paid' | 'unpaid'
           amount?: number | null
           paid_at?: string | null
           created_at?: string
