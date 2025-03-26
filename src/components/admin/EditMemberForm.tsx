@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/types/database.types'
 import { useRouter } from 'next/navigation'
@@ -23,7 +23,7 @@ export default function EditMemberForm({ member }: Props) {
     updated_at: member.updated_at,
     email: member.email,
     company_name: member.company_name || '',
-    status: member.status as 'active' | 'pending_payment' | 'pending_review',
+    status: member.status as 'active' | 'pending_review',
     is_admin: member.is_admin,
     manager_name: member.manager_name || '',
     siret: member.siret || '',
@@ -39,7 +39,131 @@ export default function EditMemberForm({ member }: Props) {
     website_url: member.website_url || '',
   })
 
+  const [cotisation, setCotisation] = useState({
+    status: 'unpaid' as 'paid' | 'pending' | 'unpaid',
+    amount: '',
+    year: new Date().getFullYear(),
+  })
+
+  const [cotisationsHistory, setCotisationsHistory] = useState<Array<{
+    id: string;
+    year: number;
+    status: 'paid' | 'pending' | 'unpaid';
+    amount: string;
+    paid_at: string | null;
+  }>>([])
+
+  const [loadingCotisation, setLoadingCotisation] = useState(true)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+
   const supabase = createClient()
+
+  useEffect(() => {
+    const loadCotisation = async () => {
+      try {
+        const currentYear = new Date().getFullYear()
+        const { data, error } = await supabase
+          .from('cotisations')
+          .select('*')
+          .eq('profile_id', member.id)
+          .eq('year', currentYear)
+          .single()
+
+        if (error && error.code !== 'PGRST116') { 
+          throw error
+        }
+
+        if (data) {
+          setCotisation({
+            status: data.status,
+            amount: data.amount?.toString() || '',
+            year: data.year,
+          })
+        }
+      } catch (err) {
+        console.error('Erreur lors du chargement de la cotisation:', err)
+      } finally {
+        setLoadingCotisation(false)
+      }
+    }
+
+    loadCotisation()
+  }, [member.id, supabase])
+
+  useEffect(() => {
+    const loadCotisations = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('cotisations')
+          .select('*')
+          .eq('profile_id', member.id)
+          .order('year', { ascending: false })
+
+        if (error) throw error
+
+        if (data) {
+          // Mettre à jour l'historique
+          setCotisationsHistory(data.map(item => ({
+            id: item.id,
+            year: item.year,
+            status: item.status,
+            amount: item.amount?.toString() || '',
+            paid_at: item.paid_at
+          })))
+
+          // Mettre à jour la cotisation actuelle si elle existe
+          const currentYearCotisation = data.find(item => item.year === selectedYear)
+          if (currentYearCotisation) {
+            setCotisation({
+              status: currentYearCotisation.status,
+              amount: currentYearCotisation.amount?.toString() || '',
+              year: currentYearCotisation.year,
+            })
+          } else {
+            // Réinitialiser pour la nouvelle année
+            setCotisation({
+              status: 'unpaid',
+              amount: '',
+              year: selectedYear,
+            })
+          }
+        }
+      } catch (err) {
+        console.error('Erreur lors du chargement des cotisations:', err)
+      } finally {
+        setLoadingCotisation(false)
+      }
+    }
+
+    loadCotisations()
+  }, [member.id, selectedYear, supabase])
+
+  const handleCotisationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    try {
+      const { error } = await supabase
+        .from('cotisations')
+        .upsert({
+          profile_id: member.id,
+          year: cotisation.year,
+          status: cotisation.status,
+          amount: cotisation.amount ? parseFloat(cotisation.amount) : null,
+          updated_at: new Date().toISOString(),
+        })
+
+      if (error) throw error
+
+      router.refresh()
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour de la cotisation:', err)
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la mise à jour de la cotisation')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,7 +171,6 @@ export default function EditMemberForm({ member }: Props) {
     setError(null)
 
     try {
-      // Log des données avant l'envoi
       console.log('Données envoyées à Supabase:', {
         member_type: formData.member_type,
         formData
@@ -124,25 +247,21 @@ export default function EditMemberForm({ member }: Props) {
 
       const supabase = createClient()
       
-      // Générer un nom de fichier unique basé sur l'ID du membre et l'extension du fichier
       const fileExt = file.name.split('.').pop()
       const fileName = `${member.id}.${fileExt}`
 
-      // Upload du fichier dans le bucket "logos"
       const { error: uploadError } = await supabase.storage
         .from('logos')
         .upload(fileName, file, {
-          upsert: true // Remplacer si le fichier existe déjà
+          upsert: true 
         })
 
       if (uploadError) throw uploadError
 
-      // Obtenir l'URL publique du logo
       const { data: { publicUrl } } = supabase.storage
         .from('logos')
         .getPublicUrl(fileName)
 
-      // Mettre à jour l'état du formulaire avec la nouvelle URL du logo
       setFormData({
         ...formData,
         logo_url: publicUrl
@@ -152,6 +271,30 @@ export default function EditMemberForm({ member }: Props) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleCotisationChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setCotisation(prev => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedYear(parseInt(e.target.value))
+  }
+
+  const getYearOptions = () => {
+    const currentYear = new Date().getFullYear()
+    const startYear = Math.min(...cotisationsHistory.map(c => c.year), currentYear)
+    const years: number[] = []
+    for (let year = currentYear; year >= startYear; year--) {
+      years.push(year)
+    }
+    // Ajouter l'année suivante pour permettre la préparation
+    years.unshift(currentYear + 1)
+    return years
   }
 
   return (
@@ -418,7 +561,6 @@ export default function EditMemberForm({ member }: Props) {
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="active">Actif</option>
-              <option value="pending_payment">En attente de paiement</option>
               <option value="pending_review">En attente de validation</option>
             </select>
           </div>
@@ -448,6 +590,75 @@ export default function EditMemberForm({ member }: Props) {
               <span className="ml-2 text-sm text-gray-700">Charte signée</span>
             </label>
           </div>
+        </div>
+
+        {/* Cotisation */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Année */}
+          <div>
+            <label htmlFor="year" className="block text-sm font-medium text-gray-700">
+              Année
+            </label>
+            <select
+              id="year"
+              name="year"
+              value={selectedYear}
+              onChange={handleYearChange}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              {getYearOptions().map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Statut de la cotisation */}
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+              Statut de la cotisation
+            </label>
+            <select
+              id="status"
+              name="status"
+              value={cotisation.status}
+              onChange={handleCotisationChange}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="unpaid">Non payée</option>
+              <option value="pending">En attente</option>
+              <option value="paid">Payée</option>
+            </select>
+          </div>
+
+          {/* Montant de la cotisation */}
+          <div>
+            <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
+              Montant de la cotisation
+            </label>
+            <input
+              type="number"
+              id="amount"
+              name="amount"
+              value={cotisation.amount}
+              onChange={handleCotisationChange}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+        </div>
+
+        {/* Historique des cotisations */}
+        <div>
+          <h2 className="text-lg font-medium text-gray-700">Historique des cotisations</h2>
+          <ul className="mt-2">
+            {cotisationsHistory.map(cotisation => (
+              <li key={cotisation.id} className="py-2">
+                <span className="text-sm text-gray-700">{cotisation.year} - {cotisation.status}</span>
+                {cotisation.paid_at && (
+                  <span className="ml-2 text-sm text-gray-500">Payée le {new Date(cotisation.paid_at).toLocaleString('fr-FR')}</span>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Dates (lecture seule) */}
@@ -494,6 +705,14 @@ export default function EditMemberForm({ member }: Props) {
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
           >
             {loading ? 'Enregistrement...' : 'Enregistrer'}
+          </button>
+          <button
+            type="button"
+            onClick={handleCotisationSubmit}
+            disabled={loading}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            {loading ? 'Enregistrement de la cotisation...' : 'Enregistrer la cotisation'}
           </button>
         </div>
       </div>

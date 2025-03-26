@@ -16,7 +16,7 @@ export interface Database {
           updated_at: string
           email: string
           company_name: string | null
-          status: 'active' | 'pending_payment' | 'pending_review'
+          status: 'active' | 'pending_review'
           is_admin: boolean
           manager_name: string | null
           siret: string | null
@@ -37,7 +37,7 @@ export interface Database {
           updated_at?: string
           email: string
           company_name?: string | null
-          status?: 'active' | 'pending_payment' | 'pending_review'
+          status?: 'active' | 'pending_review'
           is_admin?: boolean
           manager_name?: string | null
           siret?: string | null
@@ -58,7 +58,7 @@ export interface Database {
           updated_at?: string
           email?: string
           company_name?: string | null
-          status?: 'active' | 'pending_payment' | 'pending_review'
+          status?: 'active' | 'pending_review'
           is_admin?: boolean
           manager_name?: string | null
           siret?: string | null
@@ -72,6 +72,38 @@ export interface Database {
           tiktok_url?: string | null
           instagram_url?: string | null
           website_url?: string | null
+        }
+      }
+      cotisations: {
+        Row: {
+          id: string
+          profile_id: string
+          year: number
+          status: 'paid' | 'pending' | 'unpaid'
+          amount: number | null
+          paid_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          year: number
+          status?: 'paid' | 'pending' | 'unpaid'
+          amount?: number | null
+          paid_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          year?: number
+          status?: 'paid' | 'pending' | 'unpaid'
+          amount?: number | null
+          paid_at?: string | null
+          created_at?: string
+          updated_at?: string
         }
       }
     }
