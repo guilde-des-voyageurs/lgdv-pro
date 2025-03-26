@@ -4,7 +4,12 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/types/database.types'
 
-type Profile = Database['public']['Tables']['profiles']['Row']
+type Profile = Database['public']['Tables']['profiles']['Row'] & {
+  cotisation?: {
+    status: 'paid' | 'unpaid'
+    amount: number | null
+  } | null
+}
 
 export default function MembersList() {
   const [members, setMembers] = useState<Profile[]>([])
@@ -14,14 +19,30 @@ export default function MembersList() {
 
   const loadMembers = useCallback(async () => {
     try {
+      const currentYear = new Date().getFullYear()
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          cotisation:cotisations(
+            status,
+            amount
+          )
+        `)
+        .eq('cotisations.year', currentYear)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setMembers(data || [])
+
+      // Transformer les données pour avoir un format plus simple
+      const transformedData = (data || []).map(member => ({
+        ...member,
+        cotisation: member.cotisation?.[0] || null
+      }))
+
+      setMembers(transformedData)
     } catch (err) {
+      console.error('Erreur complète:', err)
       setError(err instanceof Error ? err.message : 'Une erreur est survenue')
     } finally {
       setLoading(false)
@@ -102,6 +123,12 @@ export default function MembersList() {
                 scope="col"
                 className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
               >
+                Cotisation {new Date().getFullYear()}
+              </th>
+              <th
+                scope="col"
+                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+              >
                 Date d&apos;inscription
               </th>
               <th scope="col" className="relative px-3 py-3.5">
@@ -123,18 +150,24 @@ export default function MembersList() {
                     className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
                       member.status === 'active'
                         ? 'bg-green-100 text-green-800'
-                        : member.status === 'pending_payment' || member.status === 'pending_review'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
                     }`}
                   >
                     {member.status === 'active'
                       ? 'Actif'
-                      : member.status === 'pending_payment'
-                      ? 'En attente de paiement'
-                      : member.status === 'pending_review'
-                      ? 'En attente de validation'
-                      : 'Inactif'}
+                      : 'En attente de validation'}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-3 py-4 text-sm">
+                  <span
+                    className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                      member.cotisation?.status === 'paid'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {member.cotisation?.status === 'paid' ? 'Payée' : 'Non payée'}
+                    {member.cotisation?.amount ? ` (${member.cotisation.amount}€)` : ''}
                   </span>
                 </td>
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
