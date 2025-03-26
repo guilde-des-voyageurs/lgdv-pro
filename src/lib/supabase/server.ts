@@ -39,12 +39,8 @@ export function createClient() {
          * 
          * Note : Cette fonction est désactivée pour empêcher la modification des cookies 
          * en dehors des Server Actions ou des Route Handlers.
-         * 
-         * @param name Nom du cookie à définir.
-         * @param value Valeur à attribuer au cookie.
-         * @param options Options supplémentaires pour le cookie (chemin, durée de vie, domaine, sécurité).
          */
-        set(name: string, value: string, options: { path?: string; maxAge?: number; domain?: string; secure?: boolean }) {
+        set() {
           // Les cookies ne peuvent être modifiés que dans les Server Actions ou les Route Handlers
           // Cette fonction sera appelée par Supabase mais ne fera rien en dehors des actions serveur
           return
@@ -54,11 +50,8 @@ export function createClient() {
          * 
          * Note : Cette fonction est désactivée pour empêcher la suppression des cookies 
          * en dehors des Server Actions ou des Route Handlers.
-         * 
-         * @param name Nom du cookie à supprimer.
-         * @param options Options pour la suppression (chemin, domaine).
          */
-        remove(name: string, options: { path?: string; domain?: string }) {
+        remove() {
           // Les cookies ne peuvent être modifiés que dans les Server Actions ou les Route Handlers
           // Cette fonction sera appelée par Supabase mais ne fera rien en dehors des actions serveur
           return

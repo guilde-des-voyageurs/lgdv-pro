@@ -53,7 +53,6 @@ export default function EditMemberForm({ member }: Props) {
     paid_at: string | null;
   }>>([])
 
-  const [loadingCotisation, setLoadingCotisation] = useState(true)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
   const supabase = createClient()
@@ -82,8 +81,6 @@ export default function EditMemberForm({ member }: Props) {
         }
       } catch (err) {
         console.error('Erreur lors du chargement de la cotisation:', err)
-      } finally {
-        setLoadingCotisation(false)
       }
     }
 
@@ -130,8 +127,6 @@ export default function EditMemberForm({ member }: Props) {
         }
       } catch (err) {
         console.error('Erreur lors du chargement des cotisations:', err)
-      } finally {
-        setLoadingCotisation(false)
       }
     }
 
