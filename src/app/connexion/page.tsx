@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import LoginForm from '@/components/auth/LoginForm'
 
 export const metadata: Metadata = {
@@ -30,6 +31,18 @@ export default async function LoginPage() {
         </div>
 
         <LoginForm />
+
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            Vous n&apos;êtes pas encore membre ?{' '}
+            <Link
+              href="/postuler"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Postulez pour nous rejoindre
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )
