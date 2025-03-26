@@ -12,10 +12,13 @@ export const metadata: Metadata = {
 }
 
 interface MemberStats {
-  total: number
   active: number
   pending: number
-  inactive: number
+  paidCotisations: number
+}
+
+interface MemberTypeStats {
+  [key: string]: number
 }
 
 export default async function AdminPage() {
@@ -53,37 +56,88 @@ export default async function AdminPage() {
   }
 
   // Récupérer les statistiques des membres
-  const { data: stats } = await supabase
+  const { data: membersData } = await supabase
     .from('profiles')
+    .select('status, member_type')
+
+  const currentYear = new Date().getFullYear()
+  const { data: cotisationsData } = await supabase
+    .from('cotisations')
     .select('status')
+    .eq('year', currentYear)
+    .eq('status', 'paid')
 
   const memberStats: MemberStats = {
-    total: stats?.length || 0,
-    active: stats?.filter(p => p.status === 'active').length || 0,
-    pending: stats?.filter(p => p.status === 'pending_payment' || p.status === 'pending_review').length || 0,
-    inactive: stats?.filter(p => p.status === 'inactive').length || 0,
+    active: membersData?.filter(p => p.status === 'active').length || 0,
+    pending: membersData?.filter(p => p.status === 'pending_review').length || 0,
+    paidCotisations: cotisationsData?.length || 0,
+  }
+
+  // Calculer les statistiques par type de membre
+  const memberTypeStats: MemberTypeStats = (membersData || []).reduce((acc, member) => {
+    if (member.member_type) {
+      acc[member.member_type] = (acc[member.member_type] || 0) + 1
+    }
+    return acc
+  }, {} as MemberTypeStats)
+
+  // Mapper les types en français
+  const typeLabels: { [key: string]: string } = {
+    marque: 'Marque',
+    artisan: 'Artisan',
+    artiste: 'Artiste',
+    restaurateur: 'Restaurateur',
+    auteur: 'Auteur',
+    autre: 'Autre'
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Tableau de bord administrateur</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-2">Total des membres</h3>
-          <p className="text-3xl font-bold">{memberStats.total}</p>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white shadow rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-2">Membres actifs</h3>
           <p className="text-3xl font-bold text-green-600">{memberStats.active}</p>
         </div>
         <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-2">En attente</h3>
+          <h3 className="text-lg font-semibold mb-2">En attente de validation</h3>
           <p className="text-3xl font-bold text-yellow-600">{memberStats.pending}</p>
         </div>
         <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-2">Inactifs</h3>
-          <p className="text-3xl font-bold text-red-600">{memberStats.inactive}</p>
+          <h3 className="text-lg font-semibold mb-2">Cotisations payées {currentYear}</h3>
+          <p className="text-3xl font-bold text-blue-600">{memberStats.paidCotisations}</p>
+        </div>
+      </div>
+
+      {/* Statistiques par type de membre */}
+      <div className="bg-white shadow rounded-lg p-6 mb-8">
+        <h2 className="text-xl font-bold mb-4">Répartition par type de membre</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type de membre
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Nombre
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {Object.entries(memberTypeStats).sort().map(([type, count]) => (
+                <tr key={type}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {typeLabels[type] || type}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {count}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -100,11 +154,12 @@ export default async function AdminPage() {
             <UserGroupIcon className="h-6 w-6 text-gray-600 group-hover:text-indigo-600" aria-hidden="true" />
           </div>
           <div>
-            <div className="font-semibold text-gray-900">
-              Gestion des membres
-              <span className="absolute inset-0" />
-            </div>
-            <p className="mt-1 text-gray-600">Voir et modifier les membres de la Guilde</p>
+            <h3 className="text-base font-semibold leading-7 text-gray-900">
+              Liste des membres
+            </h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Consultez et modifiez les informations des membres
+            </p>
           </div>
         </Link>
       </div>
