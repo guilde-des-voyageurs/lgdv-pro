@@ -47,6 +47,16 @@ export default function EditMemberForm({ member }: Props) {
     setError(null)
 
     try {
+      // Log des données avant l'envoi
+      console.log('Données envoyées à Supabase:', {
+        member_type: formData.member_type,
+        formData
+      })
+
+      if (formData.member_type && !['marque', 'artisan', 'artiste', 'restaurateur', 'auteur', 'autre'].includes(formData.member_type)) {
+        throw new Error('Type de membre invalide')
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -70,12 +80,20 @@ export default function EditMemberForm({ member }: Props) {
         })
         .eq('id', member.id)
 
-      if (error) throw error
+      if (error) {
+        console.error('Erreur Supabase:', error)
+        throw error
+      }
 
       router.refresh()
       router.push('/admin/membres')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue')
+      console.error('Erreur complète:', err)
+      if (err instanceof Error && err.message.includes('profiles_member_type_check')) {
+        setError('Le type de membre sélectionné n\'est pas valide. Veuillez vérifier les valeurs autorisées.')
+      } else {
+        setError(err instanceof Error ? err.message : 'Une erreur est survenue')
+      }
     } finally {
       setLoading(false)
     }
@@ -83,6 +101,10 @@ export default function EditMemberForm({ member }: Props) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
+    if (name === 'member_type' && value !== '' && !['marque', 'artisan', 'artiste', 'restaurateur', 'auteur', 'autre'].includes(value)) {
+      setError('Type de membre invalide')
+      return
+    }
     setFormData(prev => ({
       ...prev,
       [name]: value,
@@ -335,18 +357,18 @@ export default function EditMemberForm({ member }: Props) {
             </label>
             <select
               id="member_type"
+              name="member_type"
               value={formData.member_type}
-              onChange={(e) => setFormData({ ...formData, member_type: e.target.value })}
+              onChange={handleChange}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="">Sélectionner un type</option>
-              <option value="Marque">Marque</option>
-              <option value="Artisan/Créateur">Artisan/Créateur</option>
-              <option value="Artiste">Artiste</option>
-              <option value="Association">Association</option>
-              <option value="Restaurateur/Bar">Restaurateur/Bar</option>
-              <option value="Auteur">Auteur</option>
-              <option value="Autre">Autre</option>
+              <option value="marque">Marque</option>
+              <option value="artisan">Artisan</option>
+              <option value="artiste">Artiste</option>
+              <option value="restaurateur">Restaurateur</option>
+              <option value="auteur">Auteur</option>
+              <option value="autre">Autre</option>
             </select>
           </div>
 
