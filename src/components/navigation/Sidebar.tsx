@@ -2,22 +2,19 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { HomeIcon, UserCircleIcon, CalendarIcon, UsersIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
+import { UserCircleIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 
 interface NavigationItem {
   name: string
   href: string
-  icon: typeof HomeIcon
+  icon: typeof UserCircleIcon
   requiresAdmin?: boolean
 }
 
 const navigation: NavigationItem[] = [
-  { name: 'Hall de Guilde', href: '/hall', icon: HomeIcon },
   { name: 'Mon compte', href: '/compte', icon: UserCircleIcon },
-  { name: 'Mon calendrier', href: '/calendrier', icon: CalendarIcon },
-  { name: 'Événements', href: '/evenements', icon: UsersIcon },
   { name: 'Admin', href: '/admin', icon: ShieldCheckIcon, requiresAdmin: true },
 ]
 

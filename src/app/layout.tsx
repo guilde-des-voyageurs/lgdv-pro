@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { createClient } from '@/lib/supabase/server';
-import Navbar from '@/components/public/Navbar';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,7 +29,6 @@ export default async function RootLayout({
   return (
     <html lang="fr">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {!user && <Navbar />}
         {children}
       </body>
     </html>
